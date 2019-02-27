@@ -1,0 +1,26 @@
+sudo: required
+services:
+  - docker
+
+# Build the tests for the client
+before_install:
+  - docker build -t drkostas/react-test -f ./client/Dockerfile.dev ./client
+
+# Run the tests for the client
+script:
+  # the `-- --coverage` triggers the test to exit after finishing (with exit code)
+  - docker run drkostas/react-test npm run test -- --coverage
+
+# Build all the production versions
+after_success:
+  - docker build -t drkostas/multi-client ./client
+  - docker build -t drkostas/multi-nginx ./nginx
+  - docker build -t drkostas/multi-server ./server
+  - docker build -t drkostas/multi-worker ./worker
+  # Login to docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push drkostas/multi-client
+  - docker push drkostas/multi-nginx
+  - docker push drkostas/multi-server
+  - docker push drkostas/multi-worker
